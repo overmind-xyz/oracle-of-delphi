@@ -3,6 +3,49 @@
     utilizes the 'push model' of price oracles where the oracle admin routinely pushes price 
     updates to the contract. 
 
+    Price oracle: 
+        This is am implementation of a price oracle module. The price oracle is used to provide 
+        on-chain price information for specific coin pairs that can be used by other modules. 
+
+    Price data: 
+        All prices are stored in the PriceBoard resource which is a table of all available coin 
+        pairs and their price data. The price data is stored in the PriceFeed struct which contains
+        the latest attestation timestamp, the coin pair id, and the Price struct. The latest 
+        attestation timestamp is the timestamp of when the price was last updated, which is used to 
+        determine if a price is stale or not. The coin pair id is the string identifier of the coin
+        pair. The Price struct contains the price of the coin pair and the confidence interval of
+        the price. The price is the price of the coin pair scaled with 8 decimal places. The 
+        confidence interval is the interval of which the price is accurate within. For example, if
+        the price is 1000 and the confidence interval is 10, then the price is accurate within
+        the 990 - 1010 range.
+
+    Updating the prices: 
+        The prices are to be routinely updated by the admin of the module. The admin is the 
+        account that published this module. The admin can update the price of a coin pair by 
+        calling the update_price_feed function. The update_price_feed function can only be called by 
+        the admin. 
+
+        The admin must provide the coin pair id, the price, and the confidence interval.
+
+    Retrieving latest price: 
+        The price of a coin pair can be retrieved three ways: 
+        
+            1. get_price: This method will return the latest price and confidence level of the 
+                specified coin pair as long as the price is attested within the default maximum 
+                attestation duration. The default maximum attestation duration is 3 hours. If the 
+                price is not attested within the default maximum attestation duration, then the
+                price is considered stale and the function will abort.
+
+            2. get_price_no_older_than: This method will return the latest price and confidence
+                level of the specified coin pair as long as the price is attested no later than
+                the provided maximum age. If the price is not attested within the provided maximum
+                age, then the price is considered stale and the function will abort.
+
+            3. get_price_unsafe: This method will return the latest price, confidence level, and 
+                attestation timestamp of the specified coin pair regardless of when it was 
+                attested. This method is unsafe because it does not check if the price is stale
+                or not. 
+
     Key Concepts: 
         - Price oracles & the 'push model' price oracle method
 */
@@ -26,15 +69,9 @@ module overmind::price_oracle {
     
     // seed for the module's resource account
     const SEED: vector<u8> = b"price oracle";
-
-    // the maximum age of a price in seconds before it is considered stale - stale prices are not
-    // safe to use
-    const MAXIMUM_FRESH_DURATION_SECONDS: u64 = 60 * 60 * 3; // 3 hours
     
     //==============================================================================================
     // Error codes - DO NOT MODIFY
-    //
-    // Use this section to define error codes for all aborts
     //==============================================================================================
     const ErrorCodeForAllAborts: u64 = 1238177394;
 
@@ -54,7 +91,7 @@ module overmind::price_oracle {
     }
 
     /* 
-        Holds price feed information for a specicific price
+        Holds price feed information for a specific price
     */
     struct PriceFeed has copy, store, drop {
         // the timestamp of when the price was attested (submitted by the admin)
@@ -66,7 +103,7 @@ module overmind::price_oracle {
     }
 
     /* 
-        table of all price feeds
+        table of all price feeds. To be owned by the module's resource account
     */
     struct PriceBoard has key {
         // the table mapping all coin pair ids to their price feed
@@ -75,7 +112,7 @@ module overmind::price_oracle {
     }
 
     /* 
-        Holds information to be used in the module
+        Holds information to be used in the module. To be owned by the module's resource account
     */
     struct State has key {
         // the signer cap of the module's resource account
@@ -140,7 +177,7 @@ module overmind::price_oracle {
         MAXIMUM_FRESH_DURATION_SECONDS constant. Abort if the price is stale or if the pair does
         not exist.
         @param pair - id of the coin pair being updated
-        @retun - the price of the pair along with the confidence
+        @return - the price of the pair along with the confidence
     */
     public fun get_price(pair: String): Price acquires PriceBoard {
 
@@ -150,28 +187,29 @@ module overmind::price_oracle {
         Returns the latest price as long as it is attested no later than maximum_age_seconds ago.
         Abort if the price is stale or if the pair does not exist.
         @param pair - id of the coin pair being updated
-        @retun - the price of the pair along with the confidence
+        @param maximum_age_seconds - the maximum age of the price in seconds the request price can be
+        @return - the price of the pair along with the confidence
     */
     public fun get_price_no_older_than(pair: String, maximum_age_seconds: u64): Price 
     acquires PriceBoard {
-
+        
     }
 
     /* 
         Returns the latest price regardless of when it was attested. Abort if the pair does not
         exist.
         @param pair - id of the coin pair being updated
-        @retun - the price of the pair along with the confidence, and the timestamp of when the 
+        @return - the price of the pair along with the confidence, and the timestamp of when the 
                     the price was attested
     */
     public fun get_price_unsafe(pair: String): (Price, u64) acquires PriceBoard {
-
+        
     }
 
     //==============================================================================================
     // Helper functions
     //==============================================================================================
-
+    
     //==============================================================================================
     // Validation functions
     //==============================================================================================
