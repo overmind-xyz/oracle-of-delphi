@@ -4,8 +4,16 @@
     updates to the contract. 
 
     Price oracle: 
-        This is am implementation of a price oracle module. The price oracle is used to provide 
-        on-chain price information for specific coin pairs that can be used by other modules. 
+        A price oracle is an smart contract system that is responsible for moving price data from 
+        the real world to the blockchain. The blockchain inherently does not have access to any 
+        information that is off-chain. Oracles are used to bridge the gap between the blockchain 
+        and the real world by providing real world data to the blockchain to be used in other 
+        smart contracts. 
+
+        This module implements a price oracle that is responsible for routinely updating the price
+        of coin pairs that are used in the Aptos ecosystem. This oracle uses the 'push model' of
+        price oracles where the oracle admin routinely pushes new price updates to the contract and 
+        allows anyone to query the latest price of a coin pair at any time. 
 
     Price data: 
         All prices are stored in the PriceBoard resource which is a table of all available coin 
