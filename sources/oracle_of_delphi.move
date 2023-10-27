@@ -172,9 +172,9 @@ module overmind::price_oracle {
     */
     public entry fun update_price_feed(
         admin: &signer, 
-        pair: String,
-        price: u128, 
-        confidence: u128
+        pair: "APT/USDC",
+        price: 691000000, 
+        confidence: 00001000
     ) acquires State, PriceBoard {
 
     }
