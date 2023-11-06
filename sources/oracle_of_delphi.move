@@ -154,12 +154,8 @@ module overmind::price_oracle {
             PriceBoard resources
         @param admin - signer representing the oracle admin
     */
-    fun init_module(admin: &signer) { 
-        // TODO: Create the resource account with admin account and provided SEED constant
-
-        // TODO: Create the module's State resource and move it to the resource account
-
-        // TODO: Create the module's PriceBoard resource and move it to the resource account
+    fun init_module(admin: &signer) {
+	
     }
 
     /* 
