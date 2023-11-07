@@ -77,6 +77,9 @@ module overmind::price_oracle {
     
     // seed for the module's resource account
     const SEED: vector<u8> = b"price oracle";
+
+    //MAXIMUM_FRESH_DURATION_SECONDS to check for stale price
+    const MAXIMUM_FRESH_DURATION_SECONDS: u64 = 60 * 60 * 3;
     
     //==============================================================================================
     // Error codes - DO NOT MODIFY
