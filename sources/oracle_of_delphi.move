@@ -166,14 +166,31 @@ module overmind::price_oracle {
         @param price - the new price scaled with 8 decimal places
         @param confidence - the interval of confidence for the price scaled with 8 decimal places
     */
-    public entry fun update_price_feed(
-        admin: &signer, 
-        pair: String,
-        price: u128, 
-        confidence: u128
-    ) acquires State, PriceBoard {
+    public fun update_price_feed(
+    admin: &signer, 
+    expected_admin: address,
+    pair: string,
+    price: u128, 
+    confidence: u128
+) acquires 0x1::State, 0x1::PriceBoard {
+    // Check if the provided admin account matches the expected admin account
+    assert(move(address_of(signer)) == move(expected_admin), 101, "Unauthorized: Not the admin");
 
-    }
+    // Your logic to update the price feed
+    let updated_price_feed = move_to::PriceFeed {
+        latest_attestation_timestamp_seconds: 0, // Set the actual timestamp
+        pair: move(pair),
+        price: move_to::Price(price, confidence),
+    };
+
+    // Update the PriceBoard with the new price feed
+    0x1::PriceBoard.prices[move(pair)] = move(updated_price_feed);
+
+    // Emit the PriceFeedUpdatedEvent
+    0x1::State.price_feed_updated_event
+        .emitter<0x1::PriceFeedUpdatedEvent>()
+        .emit(move(pair), move(price), move(timestamp));
+}
 
     /* 
         Returns the latest price as long as it is attested within the default maximum attestation 
@@ -183,9 +200,21 @@ module overmind::price_oracle {
         @param pair - id of the coin pair being updated
         @return - the price of the pair along with the confidence
     */
-    public fun get_price(pair: String): Price acquires PriceBoard {
+    public fun get_price(pair: string): 0x1::Price {
+    // Retrieve the PriceFeed for the specified pair from the PriceBoard
+    let price_feed = 0x1::PriceBoard.prices[move(pair)];
 
-    }
+    // Ensure that the PriceFeed for the specified pair exists
+    assert(
+        move_exists<0x1::PriceBoard.prices>(move(pair)),
+        101,
+        "Price not found for the specified pair",
+    );
+
+    // Return the price from the PriceFeed
+    move(price_feed.price);
+}
+
 
     /* 
         Returns the latest price as long as it is attested no later than maximum_age_seconds ago.
