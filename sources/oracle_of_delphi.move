@@ -155,7 +155,9 @@ module overmind::price_oracle {
         @param admin - signer representing the oracle admin
     */
     fun init_module(admin: &signer) {
-	
+	let resource_account = create_resource_account(admin);
+   	let state = State::create(resource_account);
+  	let price_board = PriceBoard::create(resource_account);
     }
 
     /* 
@@ -172,7 +174,9 @@ module overmind::price_oracle {
         price: u128, 
         confidence: u128
     ) acquires State, PriceBoard {
-
+	assert!(Signer::address_of(admin) == @admin, Errors::INVALID_ADMIN);
+        let price_board = &mut borrow_global_mut<PriceBoard>(Signer::address_of(admin));
+        price_board.update_price(pair, price, confidence);
     }
 
     /* 
@@ -184,7 +188,10 @@ module overmind::price_oracle {
         @return - the price of the pair along with the confidence
     */
     public fun get_price(pair: String): Price acquires PriceBoard {
-
+	let price_board = borrow_global<PriceBoard>(Signer::address_of(&admin));
+        let price = price_board.get_price(pair);
+        assert!(price.timestamp > current_timestamp() - MAXIMUM_FRESH_DURATION_SECONDS, Errors::PRICE_TOO_OLD);
+        return price;
     }
 
     /* 
@@ -196,7 +203,10 @@ module overmind::price_oracle {
     */
     public fun get_price_no_older_than(pair: String, maximum_age_seconds: u64): Price 
     acquires PriceBoard {
-        
+        let price_board = borrow_global<PriceBoard>(Signer::address_of(&admin));
+        let price = price_board.get_price(pair);
+        assert!(price.timestamp > current_timestamp() - maximum_age_seconds, Errors::PRICE_TOO_OLD);
+        return price;
     }
 
     /* 
@@ -207,7 +217,9 @@ module overmind::price_oracle {
                     the price was attested
     */
     public fun get_price_unsafe(pair: String): (Price, u64) acquires PriceBoard {
-        
+        let price_board = borrow_global<PriceBoard>(Signer::address_of(&admin));
+        let price = price_board.get_price(pair);
+        return (price, price.timestamp);
     }
 
     //==============================================================================================
