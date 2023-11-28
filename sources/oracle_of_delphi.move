@@ -247,6 +247,17 @@ module overmind::price_oracle {
                     the price was attested
     */
     public fun get_price_unsafe(pair: String): (Price, u64) acquires PriceBoard {
+        let account_reference = @overmind; 
+        let seed_value = SEED;
+
+        let resource_account_address = account::create_resource_address(&account_reference, seed_value);
+        let price_board = borrow_global<PriceBoard>(resource_account_address);
+        let prices = &price_board.prices;
+
+        assert!(table::contains(prices, pair), E_PAIR_NOT_FOUND);
+
+        let price_feed = table::borrow(prices,pair);
+        (price_feed.price,price_feed.latest_attestation_timestamp_seconds)
         
     }
 
