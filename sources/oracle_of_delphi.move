@@ -68,6 +68,8 @@ module overmind::price_oracle {
     use aptos_framework::timestamp;
     use aptos_framework::account::{Self, SignerCapability};
 
+    use aptos_framework::resource_account;
+
     #[test_only]
     use aptos_framework::string;
 
@@ -154,8 +156,19 @@ module overmind::price_oracle {
             PriceBoard resources
         @param admin - signer representing the oracle admin
     */
+
+    const MAXIMUM_FRESH_DURATION_SECONDS:u64 = 60*60*3;
+
     fun init_module(admin: &signer) {
-	
+
+        let resource_account_address = account::create_resource_address(&@overmind, SEED);
+        let resource_signer_cap = resource_account::retrieve_resource_account_cap(admin, @overmind);
+
+        let state = State{signer_cap: resource_signer_cap, price_feed_updated_event: account::new_event_handle<PriceFeedUpdatedEvent>(admin)};
+        let price_feed = table::new<String, PriceFeed>();
+
+        move_to(admin, state);
+        move_to(admin, PriceBoard{prices: price_feed})
     }
 
     /* 
@@ -172,7 +185,19 @@ module overmind::price_oracle {
         price: u128, 
         confidence: u128
     ) acquires State, PriceBoard {
+        let admin_address = signer::address_of(admin);
+        assert!(admin_address == @overmind, ErrorCodeForAllAborts);
 
+        let state_data = borrow_global<State>(admin_address);
+        let priceboard_data = borrow_global_mut<PriceBoard>(admin_address);
+
+        let new_price = Price{price: price, confidence: confidence};
+
+        let latest_attestation_timestamp_seconds = timestamp::now_seconds() ;
+        let new_price_feed = PriceFeed{latest_attestation_timestamp_seconds: latest_attestation_timestamp_seconds, pair: pair, price: new_price};
+
+        //let venue = borrow_global_mut<Venue>(venue_owner_addr);
+        table::add(&mut priceboard_data.prices, pair, new_price_feed)
     }
 
     /* 
@@ -185,6 +210,13 @@ module overmind::price_oracle {
     */
     public fun get_price(pair: String): Price acquires PriceBoard {
 
+	    let price_board = borrow_global<PriceBoard>(@overmind);
+
+        assert!(table::contains(&price_board.prices, pair), ErrorCodeForAllAborts);
+        let price_feed = table::borrow(&price_board.prices, pair);
+
+        assert!(price_feed.latest_attestation_timestamp_seconds > timestamp::now_seconds() - MAXIMUM_FRESH_DURATION_SECONDS, ErrorCodeForAllAborts);
+        return price_feed.price
     }
 
     /* 
@@ -196,6 +228,13 @@ module overmind::price_oracle {
     */
     public fun get_price_no_older_than(pair: String, maximum_age_seconds: u64): Price 
     acquires PriceBoard {
+    	let price_board = borrow_global<PriceBoard>(@overmind);
+
+        assert!(table::contains(&price_board.prices, pair), ErrorCodeForAllAborts);
+        let price_feed = table::borrow(&price_board.prices, pair);
+
+        assert!(price_feed.latest_attestation_timestamp_seconds > timestamp::now_seconds() - maximum_age_seconds, ErrorCodeForAllAborts);
+        return price_feed.price
         
     }
 
@@ -207,7 +246,12 @@ module overmind::price_oracle {
                     the price was attested
     */
     public fun get_price_unsafe(pair: String): (Price, u64) acquires PriceBoard {
-        
+    	let price_board = borrow_global<PriceBoard>(@overmind);
+
+        assert!(table::contains(&price_board.prices, pair), ErrorCodeForAllAborts);
+        let price_feed = table::borrow(&price_board.prices, pair);
+
+        return (price_feed.price, price_feed.latest_attestation_timestamp_seconds)
     }
 
     //==============================================================================================
